@@ -1,0 +1,3 @@
+LogLevel: 2
+DavRoot: "./static/"
+DavPrefix: "/toto/"
