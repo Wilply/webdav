@@ -10,6 +10,17 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+/* TODO:
+READ-ONLY: empecher les requetes MOVE & DELETE
+USER & GROUP ==> SQlite c'est bcp plus simple
+AMELIORER COOKIE (hash, real token ...)
+TABLE DE CORRESPONDANCE COOKIE - USER
+Le systeme de cookie reduit les risques mais n'est pas tres efficace,
+on peut quand meme se connecter avec les id si on ne renvoie pas le cookie.
+par contre il permet de reduire le traffix reseaux puisque il n'y a plus besoin
+d'envoyer les ids a chaque requete (x2/3 du traffic)
+*/
+
 type Configs struct {
 	LogLevel   int    `yaml:"LogLevel"`
 	ServerAddr string `yaml:"ServerAddr"`
@@ -47,11 +58,11 @@ var serverlistenon string //base url for the server
 var davhandler http.Handler //webdav handler
 
 func init() {
-	consoleapp(1, "Reading & Parsing Config")
+	logger(1, "Reading & Parsing Config")
 	var ok bool
 	ok = parseyaml()
 	if !ok {
-		consoleapp(3, "Falling back to default config")
+		logger(3, "Falling back to default config")
 		config = defaultconf
 	}
 
@@ -66,15 +77,15 @@ func init() {
 		Logger: func(r *http.Request, err error) { //ecrire les erreurs dans la console
 			if err != nil {
 				fmt.Printf("%-8s %s %s %s \n", "[ERROR]", r.Method, r.URL, err)
-				consoleapp(3, r.Method, r.URL.EscapedPath(), err.Error())
+				logger(3, r.Method, r.URL.EscapedPath(), err.Error())
 			} else {
 				//fmt.Printf("%-8s %s %s \n", "[INFO]", r.Method, r.URL)
-				consoleapp(1, r.Method, r.URL.EscapedPath())
+				logger(1, r.Method, r.URL.EscapedPath())
 			}
 		},
 	}
 
-	consoleapp(1, "Registrering Handlers") //on ajoute les handlers
+	logger(1, "Registrering Handlers") //on ajoute les handlers
 	//http.Handle(config.DavPrefix, davhandler) //test without auth
 	http.Handle(config.DavPrefix, authandler(davhandler))
 	http.HandleFunc("/cookielist", printcookie)
@@ -82,8 +93,8 @@ func init() {
 }
 
 func main() {
-	consoleapp(-1, "Starting Server")
-	consoleapp(-1, "Listening on", serverlistenon)
+	logger(-1, "Starting Server")
+	logger(-1, "Listening on", serverlistenon)
 	fmt.Println("*********************************")
 	http.ListenAndServe(serverlistenon, nil) //on demarre le serveur
 }
@@ -93,17 +104,17 @@ func authandler(next http.Handler) http.Handler {
 		//1st test if cookie
 		c, err := r.Cookie("AuthToken")
 		if err == nil {
-			consoleapp(0, "Auth cookie ok, auth successful. Token = "+c.Value)
+			logger(0, "Auth cookie ok, auth successful. Token = "+c.Value)
 			next.ServeHTTP(w, r)
 			return
 		} else {
-			consoleapp(1, "No cookie for "+r.RemoteAddr+" try to authenticate")
+			logger(1, "No cookie for "+r.RemoteAddr+" try to authenticate")
 		}
 		//ici on fait des truc => c'est le middleware
 		//var username, password, ok = r.BasicAuth()
 		var user, pass, ok = r.BasicAuth()
 		if !ok { // header authorization no set
-			consoleapp(2, "connection attempt from ", r.RemoteAddr)
+			logger(2, "connection attempt from ", r.RemoteAddr)
 			w.Header().Set("WWW-Authenticate", `Basic realm="webdav acces, auth required" charset="UTF-8"`)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -114,10 +125,10 @@ func authandler(next http.Handler) http.Handler {
 					Value: "ziefbi954fze",
 				}
 				http.SetCookie(w, &authc)
-				consoleapp(2, "User : ", user, " is connected from ", r.RemoteAddr)
+				logger(2, "User : ", user, " is connected from ", r.RemoteAddr)
 				//w.WriteHeader(http.StatusOK)
 			} else {
-				consoleapp(3, "Failed connexion attempt from ", r.RemoteAddr, " with user : ", user)
+				logger(3, "Failed connexion attempt from ", r.RemoteAddr, " with user : ", user)
 				w.WriteHeader(http.StatusForbidden)
 				return
 			}
@@ -133,7 +144,7 @@ func authenticate(user, pass string) bool { //on modifiera ca plus tard
 	return false
 }
 
-func consoleapp(loglvl int, msg ...string) { //affiche les info si config.LogLevel > 1
+func logger(loglvl int, msg ...string) { //affiche les info si config.LogLevel > 1
 	var prefix string
 	if loglvl == -1 {
 		loglvl = 100
@@ -172,16 +183,16 @@ func parseyaml() bool {
 
 	if readerr != nil {
 		ok = false
-		consoleapp(4, readerr.Error())
-		consoleapp(4, "Error while reading config file")
+		logger(4, readerr.Error())
+		logger(4, "Error while reading config file")
 		return ok
 	}
 
 	parseerr := yaml.UnmarshalStrict(source, &config) //existing key override default
 	if parseerr != nil {
 		ok = false
-		consoleapp(4, parseerr.Error())
-		consoleapp(4, "Error while parsing config file")
+		logger(4, parseerr.Error())
+		logger(4, "Error while parsing config file")
 		return ok
 	}
 
@@ -197,7 +208,7 @@ func printconfig() {
 func printcookie(w http.ResponseWriter, r *http.Request) {
 	cookies := r.Cookies()
 	for _, c := range cookies {
-		consoleapp(0, "cookie name : ", c.Name, " ; cookie value : ", c.Value)
+		logger(0, "cookie name : ", c.Name, " ; cookie value : ", c.Value)
 		w.Write([]byte("cookie name : " + c.Name + " ; cookie value : " + c.Value))
 	}
 }
