@@ -94,9 +94,10 @@ func init() {
 
 func main() {
 	initDB()
+	testdb()
 	logger(-1, "Starting Server")
 	logger(-1, "Listening on", serverlistenon)
-	fmt.Println("*********************************")
+	fmt.Println("***********************************************************")
 	http.ListenAndServe(serverlistenon, nil) //on demarre le serveur
 }
 
@@ -143,38 +144,6 @@ func authenticate(user, pass string) bool { //on modifiera ca plus tard
 		return true
 	}
 	return false
-}
-
-func logger(loglvl int, msg ...string) { //affiche les info si config.LogLevel > 1
-	var prefix string
-	if loglvl == -1 {
-		loglvl = 100
-	}
-
-	switch loglvl {
-	case 4:
-		prefix = "[CRITICAL]"
-	case 3:
-		prefix = "[WARNING]"
-	case 2:
-		prefix = "[INFO]"
-	case 1:
-		prefix = "[DEBUG]"
-	case 0:
-		prefix = "[DEBUG]"
-	case 100:
-		prefix = "[INFO]"
-	default:
-		prefix = "[INFO]"
-	}
-
-	if loglvl >= config.LogLevel {
-		var str string
-		for _, v := range msg {
-			str = str + v
-		}
-		fmt.Printf("%-8s %s \n", prefix, str)
-	}
 }
 
 func parseyaml() bool {
