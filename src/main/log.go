@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 )
 
@@ -42,5 +43,20 @@ func iferror(dept int, r error) {
 		if dept == 4 {
 			log.Panic("The program encounter a problem and stopped")
 		}
+	}
+}
+
+func testr(r error) (ok bool) {
+	if r != nil {
+		ok = false
+	} else {
+		ok = true
+	}
+	return
+}
+
+func printconfig() {
+	if config.LogLevel == 0 {
+		fmt.Println("Running-Config : ", config)
 	}
 }
