@@ -9,27 +9,13 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-/* TODO:
-READ-ONLY: empecher les requetes MOVE & DELETE
-AMELIORER COOKIE (hash, ) raw champ ?
-ENCRYPT PASSWORD
-CONFIG INTERFACE
-r.RemoteAddr ==> @ip:port => le port client peut changer vu qu'il est random
-donc il est possible que on regénère un token pour rien(meme si le port est fixe pour une session et
-que les client ne memorise les cookie souvent que pour la session en dav)
-***
-Le systeme de cookie reduit les risques mais n'est pas tres efficace,
-on peut quand meme se connecter avec les id si on ne renvoie pas le cookie.
-par contre il permet de reduire le traffix reseaux puisque il n'y a plus besoin
-d'envoyer les ids a chaque requete (x2/3 du traffic)
-*/
-
 type Configs struct {
 	LogLevel   int    `yaml:"LogLevel"`
 	ServerAddr string `yaml:"ServerAddr"`
 	ServerPort int    `yaml:"ServerPort"`
 	DavRoot    string `yaml:"DavRoot"`   //chemin local
 	DavPrefix  string `yaml:"DavPrefix"` //prefix url
+	DBfile     string `yaml:"DBfile"`    //path to db file
 }
 
 var defaultconf = Configs{
@@ -38,6 +24,7 @@ var defaultconf = Configs{
 	ServerPort: 8080,
 	DavRoot:    "./static/",
 	DavPrefix:  "/dav/", // '/' IS NEDEED BEFORE AND AFTER PATH
+	DBfile:     "./webdav.db",
 }
 
 /* LOG LVL :
@@ -84,10 +71,12 @@ func init() {
 
 func main() {
 	initDB()
-	testdb()
+	createuser("admin", "toto")
+	listuser()
 	logger(-1, "Starting Server")
 	logger(-1, "Listening on", serverlistenon)
 	fmt.Println("***********************************************************")
+	go clearconnection()                     //delete expired connection evry 2 minutes
 	http.ListenAndServe(serverlistenon, nil) //on demarre le serveur
 }
 

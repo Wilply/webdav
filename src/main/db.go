@@ -3,6 +3,8 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"strconv"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -34,7 +36,7 @@ func testdb() {
 }
 
 func initDB() {
-	db, r := sql.Open("sqlite3", "./foo.db")
+	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(4, r)
 	for _, rqstr := range dbrqlist {
 		rq, r := db.Prepare(rqstr)
@@ -46,7 +48,7 @@ func initDB() {
 }
 
 func insertuserDB(username, password, rw, ro string) (ok bool) {
-	db, r := sql.Open("sqlite3", "./foo.db")
+	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	var rqstr string = "INSERT INTO Users VALUES (?,?,?,?);"
 	rq, r := db.Prepare(rqstr)
@@ -59,7 +61,7 @@ func insertuserDB(username, password, rw, ro string) (ok bool) {
 }
 
 func insertgroupDB(groupname, rw, ro string) (ok bool) {
-	db, r := sql.Open("sqlite3", "./foo.db")
+	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	var rqstr string = "INSERT INTO Groups VALUES (?,?,?);"
 	rq, r := db.Prepare(rqstr)
@@ -72,7 +74,7 @@ func insertgroupDB(groupname, rw, ro string) (ok bool) {
 }
 
 func insertingroupDB(username, groupname string) (ok bool) {
-	db, r := sql.Open("sqlite3", "./foo.db")
+	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	//DELETE TO AVOID DUPLICATE, it's ugly but it's work and it's 4am
 	var rqstrdel string = "DELETE FROM InGroup WHERE user_login = ? AND group_name = ?;"
@@ -92,7 +94,7 @@ func insertingroupDB(username, groupname string) (ok bool) {
 }
 
 func listuser() {
-	db, r := sql.Open("sqlite3", "./foo.db")
+	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	rows, r := db.Query("SELECT * FROM Users")
 	iferror(4, r)
@@ -107,7 +109,7 @@ func listuser() {
 }
 
 func listgroup() {
-	db, r := sql.Open("sqlite3", "./foo.db")
+	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	rows, r := db.Query("SELECT * FROM Groups")
 	iferror(4, r)
@@ -122,7 +124,7 @@ func listgroup() {
 }
 
 func listingroup() {
-	db, r := sql.Open("sqlite3", "./foo.db")
+	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	rows, r := db.Query("SELECT * FROM InGroup")
 	iferror(4, r)
@@ -137,7 +139,7 @@ func listingroup() {
 }
 
 func getuser(username string) (ok bool, login, pass, rw, ro string) {
-	db, r := sql.Open("sqlite3", "./foo.db")
+	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	row := db.QueryRow("SELECT * FROM Users WHERE user_login = ?", username)
 	iferror(4, r)
@@ -148,7 +150,7 @@ func getuser(username string) (ok bool, login, pass, rw, ro string) {
 }
 
 func getgroup(groupname string) (ok bool, name, rw, ro string) {
-	db, r := sql.Open("sqlite3", "./foo.db")
+	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	row := db.QueryRow("SELECT * FROM Groups WHERE group_name = ?", groupname)
 	iferror(4, r)
@@ -159,7 +161,7 @@ func getgroup(groupname string) (ok bool, name, rw, ro string) {
 }
 
 func getgroupofuser(username string) (ok bool, groups []string) {
-	db, r := sql.Open("sqlite3", "./foo.db")
+	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	rows, r := db.Query("SELECT group_name FROM InGroup WHERE user_login = ?", username)
 	iferror(4, r)
@@ -174,7 +176,7 @@ func getgroupofuser(username string) (ok bool, groups []string) {
 }
 
 func getusersingroup(groupname string) (ok bool, users []string) {
-	db, r := sql.Open("sqlite3", "./foo.db")
+	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	rows, r := db.Query("SELECT user_login FROM InGroup WHERE group_name = ?", groupname)
 	iferror(4, r)
@@ -189,7 +191,7 @@ func getusersingroup(groupname string) (ok bool, users []string) {
 }
 
 func listconnection() {
-	db, r := sql.Open("sqlite3", "./foo.db")
+	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	rows, r := db.Query("SELECT * FROM Connections")
 	iferror(4, r)
@@ -204,7 +206,7 @@ func listconnection() {
 }
 
 func getconnectionbyuser(login string) (ok bool, connection []string) { //DO NOT USE, can return more than one row
-	db, r := sql.Open("sqlite3", "./foo.db")
+	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	rows, r := db.Query("SELECT * FROM Connections WHERE user_login = ?", login)
 	iferror(4, r)
@@ -219,7 +221,7 @@ func getconnectionbyuser(login string) (ok bool, connection []string) { //DO NOT
 }
 
 func getconnectionbyip(ipaddr string) (ok bool, ip, user_login, token, expire string) {
-	db, r := sql.Open("sqlite3", "./foo.db")
+	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	row := db.QueryRow("SELECT * FROM Connections WHERE ipaddr = ?", ipaddr)
 	iferror(4, r)
@@ -230,7 +232,7 @@ func getconnectionbyip(ipaddr string) (ok bool, ip, user_login, token, expire st
 }
 
 func insertconnection(ipaddr, login, token, expire string) (ok bool) {
-	db, r := sql.Open("sqlite3", "./foo.db")
+	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	//DELETE TO AVOID DUPLICATE, it's ugly but it's work and it's 4am
 	var rqstrdel string = "DELETE FROM Connections WHERE ipaddr = ?;"
@@ -250,7 +252,7 @@ func insertconnection(ipaddr, login, token, expire string) (ok bool) {
 }
 
 func delconnection(ipaddr string) (ok bool) {
-	db, r := sql.Open("sqlite3", "./foo.db")
+	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	var rqstrdel string = "DELETE FROM Connections WHERE ipaddr = ?;"
 	rqdel, r := db.Prepare(rqstrdel)
@@ -260,4 +262,24 @@ func delconnection(ipaddr string) (ok bool) {
 	ok = testr(r)
 	db.Close()
 	return
+}
+
+func clearconnection() {
+	for true {
+		time.Sleep(2 * time.Minute)
+		nowtime := timetoint(time.Now())
+		db, r := sql.Open("sqlite3", config.DBfile)
+		iferror(3, r)
+		rows, r := db.Query("SELECT ipaddr, expire FROM Connections")
+		iferror(4, r)
+		defer db.Close()
+		var ipaddr, expire string
+		for rows.Next() {
+			rows.Scan(&ipaddr, &expire)
+			oldtime, _ := strconv.Atoi(expire)
+			if (oldtime - nowtime) < 0 {
+				delconnection(ipaddr)
+			}
+		}
+	}
 }

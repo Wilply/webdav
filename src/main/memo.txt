@@ -1,0 +1,16 @@
+TODO:
+READ-ONLY: empecher les requetes MOVE & DELETE
+AMELIORER COOKIE (hash, ) raw champ ?  -- pas utile
+ENCRYPT PASSWORD
+CONFIG INTERFACE
+TEST INITDB IF DEFAULT USER/GROUP EXIST, ELSE CREATE THEM
+
+COMMENT:
+r.RemoteAddr ==> @ip:port => le port client peut changer vu qu'il est random
+donc il est possible que on regénère un token pour rien(meme si le port est fixe pour une session et
+que les client ne memorise les cookie souvent que pour la session en dav)
+***
+Le systeme de cookie reduit les risques mais n'est pas tres efficace,
+on peut quand meme se connecter avec les id si on ne renvoie pas le cookie.
+par contre il permet de reduire le traffix reseaux puisque il n'y a plus besoin
+d'envoyer les ids a chaque requete (x2/3 du traffic)

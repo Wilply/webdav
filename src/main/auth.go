@@ -15,10 +15,10 @@ func authandler(next http.Handler) http.Handler {
 		if err == nil {
 			ok, dbip, dbuser, dbtoken, dbexpire := getconnectionbyip(r.RemoteAddr)
 			if ok && c.Value == dbtoken && r.RemoteAddr == dbip {
-				if checkexpiretime(dbexpire) {
+				if getexpiretime(dbexpire) > 60 {
 					next.ServeHTTP(w, r) //time before expiration > 60s
 					return
-				} else { //time before expiration < 60s
+				} else if getexpiretime(dbexpire) > 0 { //0s < time before expiration < 60s
 					http.SetCookie(w, newconnection(dbuser, r.RemoteAddr)) //overwrite cookie by generating new one and update db for another 20 min
 					next.ServeHTTP(w, r)
 					return
@@ -76,11 +76,13 @@ func newconnection(username, ipaddr string) (c *http.Cookie) {
 	return
 }
 
-func checkexpiretime(expiret string) bool {
+func getexpiretime(expiret string) int {
 	oldtime, _ := strconv.Atoi(expiret)
 	dt := oldtime - timetoint(time.Now())
 	if dt > 60 {
-		return true
+		return 61
+	} else if dt > 0 {
+		return 1
 	}
-	return false
+	return -1
 }
