@@ -78,6 +78,20 @@ func getuser(username string) (ok bool, login, pass, rw, ro string) {
 	return
 }
 
+func getuserlist() (ok bool, usernamelist []string) {
+	db, r := sql.Open("sqlite3", config.DBfile)
+	iferror(3, r)
+	rows, r := db.Query("SELECT user_login FROM Users")
+	iferror(3, r)
+	defer db.Close()
+	var name string
+	for rows.Next() {
+		rows.Scan(&name)
+		usernamelist = append(usernamelist, name)
+	}
+	return
+}
+
 func deleteuser(username string) (ok bool) {
 	userexist, _, _, _, _ := getuser(username)
 	if !userexist {
@@ -198,6 +212,64 @@ func getgroup(groupname string) (ok bool, name, rw, ro string) {
 	defer db.Close()
 	r = row.Scan(&name, &rw, &ro)
 	ok = testr(r)
+	return
+}
+
+func getgrouplist() (ok bool, groupnamelist []string) {
+	db, r := sql.Open("sqlite3", config.DBfile)
+	iferror(3, r)
+	rows, r := db.Query("SELECT group_name FROM Groups")
+	iferror(3, r)
+	defer db.Close()
+	var name string
+	for rows.Next() {
+		rows.Scan(&name)
+		groupnamelist = append(groupnamelist, name)
+	}
+	return
+}
+
+func updategroupro(groupname, ro string) (ok bool) {
+	groupexist, _, _, _ := getgroup(groupname)
+	if !groupexist {
+		logger(3, "cannot update group : "+groupname+" , user does not exist")
+		ok = false
+		return
+	}
+	db, r := sql.Open("sqlite3", config.DBfile)
+	iferror(3, r)
+	var rqstr string = "UPDATE Groups SET group_ro = ? WHERE group_name = ?;"
+	rq, r := db.Prepare(rqstr)
+	iferror(3, r)
+	defer db.Close()
+	_, r = rq.Exec(ro, groupname)
+	ok = testr(r)
+	if ok {
+		logger(1, "Update ro for group ", groupname, "succesful")
+	}
+	db.Close()
+	return
+}
+
+func updategrouprw(groupname, rw string) (ok bool) {
+	groupexist, _, _, _ := getgroup(groupname)
+	if !groupexist {
+		logger(3, "cannot update group : "+groupname+" , user does not exist")
+		ok = false
+		return
+	}
+	db, r := sql.Open("sqlite3", config.DBfile)
+	iferror(3, r)
+	var rqstr string = "UPDATE Groups SET group_rw = ? WHERE group_name = ?;"
+	rq, r := db.Prepare(rqstr)
+	iferror(3, r)
+	defer db.Close()
+	_, r = rq.Exec(rw, groupname)
+	ok = testr(r)
+	if ok {
+		logger(1, "Update rw for group ", groupname, "succesful")
+	}
+	db.Close()
 	return
 }
 
