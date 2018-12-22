@@ -65,14 +65,13 @@ func init() {
 	logger(1, "Registrering Handlers") //on ajoute les handlers
 	//http.Handle(config.DavPrefix, davhandler) //test without auth
 	http.Handle(config.DavPrefix, authandler(davhandler))
-	http.HandleFunc("/cookielist", printcookie)
-	http.HandleFunc("/cookieset", setcookie)
+	http.HandleFunc("/listuser", listuser)
 }
 
 func main() {
 	initDB()
-	createuser("admin", "toto")
-	listuser()
+	createuser("adminzefbuolzeefyhZBZUELINFKZEJHBFNIEZFNUZIEFKZEIF", "toto")
+	listusertest()
 	logger(-1, "Starting Server")
 	logger(-1, "Listening on", serverlistenon)
 	fmt.Println("***********************************************************")

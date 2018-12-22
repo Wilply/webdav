@@ -1,0 +1,18 @@
+{{ template "head" }}
+<table class="table">
+    <tr>
+        <th>Nom</th>
+        <th>Read-Write Permission</th>
+        <th>Read-Write Permission</th>
+    </tr>
+
+    {{range . }}
+    <tr>
+        <td>{{ .Login }}</td>
+        <td>{{ .Rw }}</td>
+        <td>{{ .Ro }}</td>
+    </tr>
+    {{end}}
+</table>
+</body>
+{{ template "style" }}

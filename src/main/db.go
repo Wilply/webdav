@@ -415,7 +415,7 @@ func clearconnection() {
 
 // ##### TESTS ####
 
-func listuser() {
+func listusertest() {
 	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	rows, r := db.Query("SELECT * FROM Users")
@@ -430,7 +430,7 @@ func listuser() {
 	fmt.Println("###")
 }
 
-func listgroup() {
+func listgrouptest() {
 	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	rows, r := db.Query("SELECT * FROM Groups")

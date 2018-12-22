@@ -1,7 +1,7 @@
 TODO:
 READ-ONLY: empecher les requetes MOVE & DELETE
-AMELIORER COOKIE (hash, ) raw champ ?  -- pas utile
-ENCRYPT PASSWORD done
+AMELIORER COOKIE (hash, ) raw champ ?  -- pas utile X
+ENCRYPT PASSWORD done /
 CONFIG INTERFACE
 TEST INITDB IF DEFAULT USER/GROUP EXIST, ELSE CREATE THEM
 
