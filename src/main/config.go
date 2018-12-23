@@ -6,7 +6,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func gethashpassword(clearpass string) (hashedpass string) {
+func hashpassword(clearpass string) (hashedpass string) {
 	bytepass := []byte(clearpass)
 	pass, _ := bcrypt.GenerateFromPassword(bytepass, 12)
 	hashedpass = string(pass)
@@ -22,17 +22,4 @@ func matchpassword(hashedpass, clearpass string) bool {
 		return false
 	}
 	return true
-}
-
-func createuser(name, pass string) (ok bool) {
-	okget, _, _, _, _ := getuser(name)
-	if !okget {
-		okinsert := insertuserDB(name, gethashpassword(pass), "", "")
-		if okinsert {
-			return true
-		}
-		logger(3, "Cannot create user "+name)
-	}
-	logger(3, "Cannot create user "+name+" user already exist")
-	return false
 }

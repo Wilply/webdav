@@ -1,0 +1,13 @@
+{{define "deleteuser"}}
+{{ template "head" }}
+<form action="/deleteuser" method="post" class="form">
+    <label for="login">User to delete :</label>
+    <select name="login" id="login" required>
+        {{ range . }}
+        <option value="{{ . }}">{{ . }}</option>
+        {{end}}
+    </select>
+    <input type="submit" value="Delete User">
+</form>
+{{ template "style" }}
+{{end}}

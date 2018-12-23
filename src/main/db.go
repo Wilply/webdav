@@ -10,9 +10,10 @@ import (
 )
 
 var dbrqlist = []string{
-	"CREATE TABLE IF NOT EXISTS Users (user_login TEXT NOT NULL PRIMARY KEY,user_pass TEXT NOT NULL,user_rw TEXT,user_ro TEXT);",
+	"CREATE TABLE IF NOT EXISTS Users (user_login TEXT NOT NULL PRIMARY KEY,user_pass TEXT NOT NULL);",
 	"CREATE TABLE IF NOT EXISTS Groups (group_name TEXT NOT NULL PRIMARY KEY,group_rw TEXT,group_ro TEXT);",
 	"CREATE TABLE IF NOT EXISTS InGroup (user_login TEXT REFERENCES Users(user_login), group_name TEXT REFERENCES Groups(group_name));",
+	"CREATE TABLE IF NOT EXISTS Paths(path TEXT NOT NULL, group_name TEXT REFERENCES Groups(group_name));",
 	"CREATE TABLE IF NOT EXISTS Connections (ipaddr TEXT PRIMARY KEY, user_login TEXT REFERENCES Users(user_login), token TEXT NOT NULL, expire TEXT NOT NULL);",
 }
 
@@ -30,7 +31,7 @@ func testdb() {
 	fmt.Println(insertconnection("root", "CECIESTUNTOKEN", "ladate"))
 	listconnection()
 	fmt.Println(getconnection("root"))*/
-	insertuserDB("root", "azerty", "/", "")
+	insertuser("root", "azerty")
 	insertgroupDB("admin", "", "")
 	insertingroupDB("root", "admin")
 }
@@ -51,29 +52,34 @@ func initDB() {
 // ##### USERS #####
 // #################
 
-func insertuserDB(username, password, rw, ro string) (ok bool) {
-	db, r := sql.Open("sqlite3", config.DBfile)
-	iferror(3, r)
-	var rqstr string = "INSERT INTO Users VALUES (?,?,?,?);"
-	rq, r := db.Prepare(rqstr)
-	iferror(3, r)
-	defer db.Close()
-	_, r = rq.Exec(username, password, rw, ro)
-	ok = testr(r)
-	if ok {
-		logger(1, "Insert user ", username, "succesful")
+func insertuser(username, password string) (ok bool) {
+	if password != "" {
+		db, r := sql.Open("sqlite3", config.DBfile)
+		iferror(3, r)
+		var rqstr string = "INSERT INTO Users VALUES (?,?);"
+		rq, r := db.Prepare(rqstr)
+		iferror(3, r)
+		defer db.Close()
+		_, r = rq.Exec(username, password)
+		ok = testr(r)
+		if ok {
+			logger(1, "Insert user ", username, " succesful")
+		}
+		db.Close()
+		return
+	} else {
+		logger(3, "cannot update user, new password too short")
+		return false
 	}
-	db.Close()
-	return
 }
 
-func getuser(username string) (ok bool, login, pass, rw, ro string) {
+func getuser(username string) (ok bool, login, pass string) {
 	db, r := sql.Open("sqlite3", config.DBfile)
 	iferror(3, r)
 	row := db.QueryRow("SELECT * FROM Users WHERE user_login = ?", username)
 	iferror(3, r)
 	defer db.Close()
-	r = row.Scan(&login, &pass, &rw, &ro)
+	r = row.Scan(&login, &pass)
 	ok = testr(r)
 	return
 }
@@ -93,7 +99,7 @@ func getuserlist() (ok bool, usernamelist []string) {
 }
 
 func deleteuser(username string) (ok bool) {
-	userexist, _, _, _, _ := getuser(username)
+	userexist, _, _ := getuser(username)
 	if !userexist {
 		logger(3, "cannot delete user : "+username+" , user does not exist")
 		ok = false
@@ -108,14 +114,14 @@ func deleteuser(username string) (ok bool) {
 	_, r = rq.Exec(username)
 	ok = testr(r)
 	if ok {
-		logger(1, "Delete user ", username, "succesful")
+		logger(1, "Delete user ", username, " succesful")
 	}
 	db.Close()
 	return
 }
 
 func updateuserpassword(username, password string) (ok bool) {
-	userexist, _, _, _, _ := getuser(username)
+	userexist, _, _ := getuser(username)
 	if !userexist {
 		logger(3, "cannot update user : "+username+" , user does not exist")
 		ok = false
@@ -131,56 +137,12 @@ func updateuserpassword(username, password string) (ok bool) {
 		_, r = rq.Exec(password, username)
 		ok = testr(r)
 		if ok {
-			logger(1, "Update password for  user ", username, "succesful")
+			logger(1, "Update password for user ", username, " succesful")
 		}
 		db.Close()
 	} else {
 		logger(3, "cannot update user, new password too short")
 	}
-	return
-}
-
-func updateuserro(username, ro string) (ok bool) {
-	userexist, _, _, _, _ := getuser(username)
-	if !userexist {
-		logger(3, "cannot update user : "+username+" , user does not exist")
-		ok = false
-		return
-	}
-	db, r := sql.Open("sqlite3", config.DBfile)
-	iferror(3, r)
-	var rqstr string = "UPDATE Users SET user_ro = ? WHERE user_login = ?;"
-	rq, r := db.Prepare(rqstr)
-	iferror(3, r)
-	defer db.Close()
-	_, r = rq.Exec(ro, username)
-	ok = testr(r)
-	if ok {
-		logger(1, "Update ro for user ", username, "succesful")
-	}
-	db.Close()
-	return
-}
-
-func updateuserrw(username, rw string) (ok bool) {
-	userexist, _, _, _, _ := getuser(username)
-	if !userexist {
-		logger(3, "cannot update user : "+username+" , user does not exist")
-		ok = false
-		return
-	}
-	db, r := sql.Open("sqlite3", config.DBfile)
-	iferror(3, r)
-	var rqstr string = "UPDATE Users SET user_rw = ? WHERE user_login = ?;"
-	rq, r := db.Prepare(rqstr)
-	iferror(3, r)
-	defer db.Close()
-	_, r = rq.Exec(rw, username)
-	ok = testr(r)
-	if ok {
-		logger(1, "Update rw for user ", username, "succesful")
-	}
-	db.Close()
 	return
 }
 
@@ -421,11 +383,11 @@ func listusertest() {
 	rows, r := db.Query("SELECT * FROM Users")
 	iferror(3, r)
 	defer db.Close()
-	var name, pass, rw, ro string
+	var name, pass string
 	fmt.Println("### LIST USER IN DB ###")
 	for rows.Next() {
-		rows.Scan(&name, &pass, &rw, &ro)
-		fmt.Printf("# %-10s %s %-15s %s %-10s %s %-10s \n", name, " | ", pass, " | ", rw, " | ", ro)
+		rows.Scan(&name, &pass)
+		fmt.Printf("# %-10s %s %-15s \n", name, " | ", pass)
 	}
 	fmt.Println("###")
 }

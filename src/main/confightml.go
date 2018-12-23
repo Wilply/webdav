@@ -5,50 +5,152 @@ import (
 	"net/http"
 )
 
-func homepage(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("./template/homepage.html", "./template/head.html", "./template/stylesheet.html")
+func webtemplate() (t *template.Template) {
+	t, err := template.ParseFiles("./template/updateuser.html", "./template/deleteuser.html", "./template/success.html", "./template/createuser.html", "./template/error.html", "./template/homepage.html", "./template/userlist.html", "./template/head.html", "./template/stylesheet.html")
 	if err != nil {
-		logger(3, "Cannot parse template for homapage \n", err.Error())
+		logger(3, "Cannot parse template file \n", err.Error())
 	}
+	return
+}
 
-	data := struct {
+func webhomepage(w http.ResponseWriter, r *http.Request) {
+
+	foo := struct { //temporaire
 		Name string
-	}{"John Smith"}
+	}{"bar"}
 
-	err = t.Execute(w, data)
+	err := webtemplate().ExecuteTemplate(w, "homepage", foo)
 	if err != nil {
-		logger(3, "Cannot execute template for homapage \n", err.Error())
+		logger(3, "Cannot execute \"homepage\" template \n", err.Error())
 	}
 }
 
-func listuser(w http.ResponseWriter, r *http.Request) {
-	type User struct {
-		Login string
-		Rw    string
-		Ro    string
-	}
+func weblistuser(w http.ResponseWriter, r *http.Request) {
 
-	var userlist []User
+	var userlist []string
 
 	_, loginlist := getuserlist()
 
 	for _, u := range loginlist {
-		_, name, _, rw, ro := getuser(u)
-		user := User{
-			Login: name,
-			Rw:    rw,
-			Ro:    ro,
+		_, name, _ := getuser(u)
+		userlist = append(userlist, name)
+	}
+
+	err := webtemplate().ExecuteTemplate(w, "userlist", userlist)
+	if err != nil {
+		logger(3, "Cannot execute \"listuser\" template \n", err.Error())
+	}
+}
+
+func webcreateuser(w http.ResponseWriter, r *http.Request) {
+	foo := struct {
+		Name string
+	}{"bar"}
+
+	if r.Method == "GET" { //send the form
+		err := webtemplate().ExecuteTemplate(w, "createuser", foo)
+		if err != nil {
+			logger(3, "Cannot execute \"createuser\" template \n", err.Error())
 		}
-		userlist = append(userlist, user)
+	} else if r.Method == "POST" { //process the form
+		u := r.FormValue("login")
+		p := r.FormValue("password")
+		if u != "" && p != "" {
+			ok := insertuser(u, hashpassword(p))
+			if !ok {
+				weberror(w, r)
+			} else {
+				websucces(w, r)
+			}
+		} else {
+			weberror(w, r)
+		}
+	} else {
+		weberror(w, r)
+	}
+}
+
+func webdeleteuser(w http.ResponseWriter, r *http.Request) {
+	var userlist []string
+
+	_, loginlist := getuserlist()
+
+	for _, u := range loginlist {
+		if u != "admin" { //DONT MESS WITH ADMIN
+			_, name, _ := getuser(u)
+			userlist = append(userlist, name)
+		}
 	}
 
-	t, err := template.ParseFiles("./template/userlist.html", "./template/head.html", "./template/stylesheet.html")
-	if err != nil {
-		logger(3, "Cannot parse template for listuser \n", err.Error())
+	if r.Method == "GET" { //send the form
+		err := webtemplate().ExecuteTemplate(w, "deleteuser", userlist)
+		if err != nil {
+			logger(3, "Cannot execute \"deleteuser\" template \n", err.Error())
+		}
+	} else if r.Method == "POST" { //process
+		username := r.FormValue("login")
+		ok := deleteuser(username)
+		if !ok {
+			weberror(w, r)
+		} else {
+			websucces(w, r)
+		}
+	} else {
+		weberror(w, r)
+	}
+}
+
+func webupdateuser(w http.ResponseWriter, r *http.Request) {
+	var userlist []string
+
+	_, loginlist := getuserlist()
+
+	for _, u := range loginlist {
+		_, name, _ := getuser(u)
+		userlist = append(userlist, name)
 	}
 
-	err = t.Execute(w, userlist)
+	if r.Method == "GET" { //send the form
+		err := webtemplate().ExecuteTemplate(w, "updateuser", userlist)
+		if err != nil {
+			logger(3, "Cannot execute \"updateuser\" template \n", err.Error())
+		}
+	} else if r.Method == "POST" {
+		u := r.FormValue("login")
+		p := r.FormValue("password")
+		if u != "" && p != "" {
+			ok := updateuserpassword(u, hashpassword(p))
+			if !ok {
+				weberror(w, r)
+			} else {
+				websucces(w, r)
+			}
+		} else {
+			weberror(w, r)
+		}
+	} else {
+		weberror(w, r)
+	}
+}
+
+func weberror(w http.ResponseWriter, r *http.Request) {
+	foo := struct { //temporaire
+		Name string
+	}{"bar"}
+
+	err := webtemplate().ExecuteTemplate(w, "error", foo)
 	if err != nil {
-		logger(3, "Cannot execute template for listuser \n", err.Error())
+		logger(3, "Cannot execute \"error\" template \n", err.Error())
+	}
+}
+
+func websucces(w http.ResponseWriter, r *http.Request) {
+	foo := struct {
+		URL string
+	}{r.URL.RawPath}
+
+	err := webtemplate().ExecuteTemplate(w, "success", foo)
+	if err != nil {
+		logger(3, "Cannot execute \"success\" template \n", err.Error())
 	}
 }

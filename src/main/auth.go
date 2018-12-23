@@ -51,8 +51,8 @@ func authandler(next http.Handler) http.Handler {
 }
 
 func authenticate(user, pass string) bool { //on modifiera ca plus tard
-	ok, _, user_pw, _, _ := getuser(user) //if ok == true then user exist
-	if ok && pass == user_pw {            //TODO: ENCRYPT
+	ok, _, user_pw := getuser(user) //if ok == true then user exist
+	if ok && pass == user_pw {      //TODO: ENCRYPT
 		return true
 	}
 	return false
